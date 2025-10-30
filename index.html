@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Favorites Wall</title>
+  <style>
+    body { font-family: sans-serif; background: #fafafa; margin: 0; }
+    h1 { text-align: center; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      padding: 20px;
+    }
+    .item {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .item img { width: 100%; height: 200px; object-fit: cover; }
+    .item p { padding: 10px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>User Favorites Wall</h1>
+  <div id="wall" class="grid"></div>
+
+  <script>
+    async function loadFavorites() {
+      // Example: fetching starred repos from GitHub
+      const response = await fetch('https://api.github.com/users/YOUR_USERNAME/starred');
+      const data = await response.json();
+
+      const wall = document.getElementById('wall');
+      wall.innerHTML = data.map(repo => `
+        <div class="item">
+          <img src="https://picsum.photos/seed/${repo.id}/400/200" alt="">
+          <p><a href="${repo.html_url}" target="_blank">${repo.name}</a></p>
+        </div>
+      `).join('');
+    }
+
+    loadFavorites();
+  </script>
+</body>
+</html>
