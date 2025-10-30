@@ -1,48 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Favorites Wall</title>
-  <style>
-    body { font-family: sans-serif; background: #fafafa; margin: 0; }
-    h1 { text-align: center; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
-      padding: 20px;
-    }
-    .item {
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .item img { width: 100%; height: 200px; object-fit: cover; }
-    .item p { padding: 10px; font-size: 14px; }
-  </style>
+    <title>User Favorites Wall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .wall {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px;
+        }
+        
+        .post {
+            margin: 10px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .post img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .post .description {
+            padding: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-  <h1>User Favorites Wall</h1>
-  <div id="wall" class="grid"></div>
-
-  <script>
-    async function loadFavorites() {
-      // Example: fetching starred repos from GitHub
-      const response = await fetch('https://api.github.com/users/YOUR_USERNAME/starred');
-      const data = await response.json();
-
-      const wall = document.getElementById('wall');
-      wall.innerHTML = data.map(repo => `
-        <div class="item">
-          <img src="https://picsum.photos/seed/${repo.id}/400/200" alt="">
-          <p><a href="${repo.html_url}" target="_blank">${repo.name}</a></p>
-        </div>
-      `).join('');
-    }
-
-    loadFavorites();
-  </script>
+    <h1>User Favorites Wall</h1>
+    <div class="wall">
+        <!-- Favorites will be displayed here -->
+    </div>
+    
+    <script>
+        const wall = document.querySelector('.wall');
+        
+        // Replace this with your API endpoint or data source
+        const favorites = [];
+        
+        // Fetch favorites from Rule34 API
+        fetch('https://rule34.xxx/index.php?page=favorites&s=view&id=5496671&pid=100')
+            .then(response => response.json())
+            .then(data => {
+                data.posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.classList.add('post');
+                    
+                    const img = document.createElement('img');
+                    img.src = post.file;
+                    
+                    const description = document.createElement('div');
+                    description.classList.add('description');
+                    description.textContent = post.tags.join(', ');
+                    
+                    postElement.appendChild(img);
+                    postElement.appendChild(description);
+                    
+                    wall.appendChild(postElement);
+                });
+            })
+            .catch(error => console.error('Error fetching favorites:', error));
+    </script>
 </body>
 </html>
