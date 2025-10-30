@@ -52,7 +52,7 @@
         const favorites = [];
         
         // Fetch favorites from Rule34 API
-        fetch('https://rule34.xxx/index.php?page=favorites&s=view&id=5496671&pid=100')
+        fetch('&api_key=&user_id=5496671')
             .then(response => response.json())
             .then(data => {
                 data.posts.forEach(post => {
