@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roblox → Polytoria Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #151820;
+      --border:   #232840;
+      --accent:   #5b6ef5;
+      --accent2:  #f55b8a;
+      --text:     #dce0ff;
+      --muted:    #6670a0;
+      --success:  #5bf5b0;
+      --mono:     'Space Mono', monospace;
+      --sans:     'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── grid bg ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(91,110,245,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(91,110,245,.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── header ── */
+    header { text-align: center; margin-bottom: 56px; }
+
+    .logo-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 18px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .logo-badge span { color: var(--accent); }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800; letter-spacing: -0.03em; line-height: 1.05;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+    h1 .arrow { color: var(--accent2); }
+
+    .sub {
+      margin-top: 12px; color: var(--muted);
+      font-family: var(--mono); font-size: 13px; line-height: 1.6;
+    }
+
+    /* ── pill ── */
+    .pill {
+      display: inline-block; padding: 2px 10px;
+      border-radius: 999px; font-family: var(--mono); font-size: 11px;
+      background: rgba(91,110,245,.15); color: var(--accent);
+      border: 1px solid rgba(91,110,245,.3);
+    }
+
+    /* ── main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 700px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* ── panels ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .panel-title {
+      font-size: 11px; font-family: var(--mono);
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-title::before {
+      content: ''; display: block; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--accent);
+    }
+
+    /* ── upload zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(91,110,245,.04);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon { font-size: 32px; margin-bottom: 10px; }
+    .drop-label { font-size: 13px; color: var(--muted); font-family: var(--mono); line-height: 1.6; }
+    .drop-label strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
+
+    /* ── preview canvas ── */
+    .canvas-wrap {
+      margin-top: 16px;
+      background: repeating-conic-gradient(#1a1d28 0% 25%, #0d0f14 0% 50%) 0 0 / 16px 16px;
+      border-radius: 10px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 160px;
+    }
+    .canvas-wrap canvas { max-width: 100%; max-height: 340px; display: block; }
+    .canvas-placeholder {
+      color: var(--muted); font-family: var(--mono); font-size: 12px; text-align: center; padding: 20px;
+    }
+
+    /* ── type select ── */
+    .type-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .type-tab {
+      flex: 1; padding: 8px 12px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--muted);
+      font-family: var(--mono); font-size: 11px; cursor: pointer;
+      transition: all .18s;
+    }
+    .type-tab.active {
+      background: rgba(91,110,245,.15); border-color: var(--accent); color: var(--accent);
+    }
+
+    /* ── convert button ── */
+    .convert-row { margin-top: 24px; text-align: center; }
+    .btn-convert {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, var(--accent), #7b4df5);
+      color: #fff; border: none; border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: opacity .18s, transform .1s;
+      box-shadow: 0 4px 24px rgba(91,110,245,.4);
+    }
+    .btn-convert:hover { opacity: .9; }
+    .btn-convert:active { transform: scale(.97); }
+    .btn-convert:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── download button ── */
+    .btn-download {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 28px; margin-top: 14px;
+      background: rgba(91,240,176,.08); border: 1px solid var(--success);
+      color: var(--success); border-radius: 8px;
+      font-family: var(--mono); font-size: 12px; cursor: pointer;
+      transition: background .18s; text-decoration: none;
+    }
+    .btn-download:hover { background: rgba(91,240,176,.15); }
+    .btn-download.hidden { display: none; }
+
+    /* ── progress / status ── */
+    .status {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      margin-top: 12px; min-height: 20px; text-align: center;
+    }
+    .status.ok  { color: var(--success); }
+    .status.err { color: var(--accent2); }
+
+    /* ── info bar ── */
+    .info-bar {
+      margin-top: 40px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      display: flex; gap: 32px; flex-wrap: wrap;
+    }
+    .info-item { flex: 1; min-width: 180px; }
+    .info-item dt { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 4px; }
+    .info-item dd { font-size: 13px; color: var(--text); }
+
+    /* ── region map visual ── */
+    .region-legend {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff; border-radius: 50;
+      animation: spin .6s linear infinite;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-badge">⚙ <span>Clothing Converter</span> v1.0</div>
+    <h1>Roblox <span class="arrow">→</span> <em>Polytoria</em></h1>
+    <p class="sub">
+      Upload a Roblox classic shirt or pants texture and instantly remap it<br>
+      to the Polytoria clothing template UV layout.
+    </p>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main-grid">
+
+    <!-- LEFT: Input -->
+    <div class="panel">
+      <div class="panel-title">Input — Roblox Texture</div>
+
+      <div class="type-tabs">
+        <button class="type-tab active" data-type="shirt">Shirt (585×559)</button>
+        <button class="type-tab" data-type="pants">Pants (585×559)</button>
+      </div>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif" />
+        <div class="drop-icon">🎮</div>
+        <div class="drop-label">
+          <strong>Drop your texture here</strong>
+          PNG, JPG — any size (auto-scaled)
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="inputWrap">
+        <div class="canvas-placeholder">Preview will appear here</div>
+      </div>
+
+      <div class="region-legend" id="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#5b6ef5"></div>Torso Front</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f55b8a"></div>Torso Back</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5bf5b0"></div>Torso Sides</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5d35b"></div>Arm Faces</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8af55b"></div>Arm Caps</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Output -->
+    <div class="panel">
+      <div class="panel-title">Output — Polytoria Texture</div>
+
+      <div class="canvas-wrap" id="outputWrap">
+        <div class="canvas-placeholder">Convert to see result</div>
+      </div>
+
+      <div style="text-align:center">
+        <a id="downloadBtn" class="btn-download hidden" download="polytoria_clothing.png">
+          ⬇ Download PNG
+        </a>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- CONVERT -->
+  <div class="convert-row">
+    <button class="btn-convert" id="convertBtn" disabled>
+      Convert Texture
+    </button>
+  </div>
+
+  <!-- INFO -->
+  <div class="info-bar">
+    <div class="info-item">
+      <dt>Roblox template</dt>
+      <dd>Classic 585×559 shirt / pants</dd>
+    </div>
+    <div class="info-item">
+      <dt>Polytoria output</dt>
+      <dd>1024×1024 clothing UV</dd>
+    </div>
+    <div class="info-item">
+      <dt>How it works</dt>
+      <dd>Each UV region is extracted and scaled into the matching Polytoria face slot.</dd>
+    </div>
+    <div class="info-item">
+      <dt>Tips</dt>
+      <dd>Use a 585×559 or 1024×1024 Roblox texture for best results.</dd>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  TEMPLATE REGION DEFINITIONS  (normalized 0-1 relative to input size)
+// ════════════════════════════════════════════════════════════════════════
+
+// Reference template size: 585 × 559 (standard Roblox classic)
+const RW = 585, RH = 559;
+
+function n(x, y, w, h, refW = RW, refH = RH) {
+  return { x: x / refW, y: y / refH, w: w / refW, h: h / refH };
+}
+
+// ── Roblox SHIRT regions ──────────────────────────────────────────────
+const SHIRT_REGIONS = {
+  // ─ Torso (upper-left block) ─
+  torso_right:   n( 33,  91, 65, 85),  // labeled R on template
+  torso_front:   n( 98,  91, 65, 85),
+  torso_left:    n(163,  91, 65, 85),  // labeled L on template
+  torso_back:    n(228,  91, 65, 85),
+  torso_top:     n( 98,  58, 65, 33),
+  torso_bottom:  n( 98, 176, 65, 33),
+
+  // ─ Right Arm (avatar right) ─
+  r_arm_back:    n(332,  91, 65, 53),
+  r_arm_right:   n(397,  91, 65, 53),
+  r_arm_front:   n(462,  91, 65, 53),
+  r_arm_left:    n(527,  91, 65, 53),
+  r_arm_top:     n(397,  58, 65, 33),
+  r_arm_bottom:  n(397, 144, 65, 33),
+
+  // ─ Left Arm (avatar left) ─
+  l_arm_back:    n(332, 210, 65, 53),
+  l_arm_right:   n(397, 210, 65, 53),
+  l_arm_front:   n(462, 210, 65, 53),
+  l_arm_left:    n(527, 210, 65, 53),
+  l_arm_top:     n(397, 177, 65, 33),
+  l_arm_bottom:  n(397, 263, 65, 33),
+};
+
+// ── Roblox PANTS regions ──────────────────────────────────────────────
+const PANTS_REGIONS = {
+  // ─ Waist / lower torso ─
+  waist_front:   n( 60,  19, 65, 15),
+  waist_back:    n(125,  19, 65, 15),
+  waist_right:   n(  0,  19, 60, 15),
+  waist_left:    n(190,  19, 60, 15),
+
+  // ─ Right Leg ─
+  r_leg_back:    n( 66, 125, 65, 85),
+  r_leg_right:   n(  0, 125, 66, 85),
+  r_leg_front:   n(132, 125, 65, 85),
+  r_leg_left:    n(197, 125, 65, 85),
+  r_leg_top:     n( 66,  91, 65, 34),
+  r_leg_bottom:  n( 66, 210, 65, 14),
+
+  // ─ Left Leg ─
+  l_leg_back:    n(329, 125, 65, 85),
+  l_leg_right:   n(263, 125, 66, 85),
+  l_leg_front:   n(395, 125, 65, 85),
+  l_leg_left:    n(460, 125, 65, 85),
+  l_leg_top:     n(329,  91, 65, 34),
+  l_leg_bottom:  n(329, 210, 65, 14),
+};
+
+// ════════════════════════════════════════════════════════════════════════
+//  POLYTORIA OUTPUT REGIONS  (absolute pixels in 1024×1024 canvas)
+// ════════════════════════════════════════════════════════════════════════
+// Measured precisely from the official Polytoria clothing template image.
+
+const PW = 1024, PH = 1024;
+
+// ── Region 2: TORSO cross-shape ─────────────────────────────────────
+//   Narrow vertical: x=439-584 (w=146)
+//     Top cap:  y=7-102   (h=96)
+//     Bot cap:  y=393-488 (h=96)
+//   Wide horizontal bar: x=351-672 (w=322), y=103-392 (h=290)
+//     Left ext:   x=351-438 (w=88)
+//     Center:     x=439-584 (w=146) ← front face
+//     Right ext:  x=585-672 (w=88)
+
+const POLY_REGIONS = {
+  // TORSO
+  torso_front:   { x:439, y:103, w:146, h:290 },  // center of cross
+  torso_back:    { x:439, y:393, w:146, h: 96 },  // bottom cap (back face)
+  torso_top:     { x:439, y:  7, w:146, h: 96 },  // top cap
+  torso_bottom:  { x:439, y:393, w:146, h: 48 },  // share bottom cap
+  torso_left:    { x:351, y:103, w: 88, h:290 },  // left wing of cross
+  torso_right:   { x:585, y:103, w: 88, h:290 },  // right wing of cross
+
+  // LEFT ARM — Region 1: x=6-269, y=7-424
+  //   Narrow: x=204-269 (w=66), y=7-70 (cap) and y=361-424 (cap)
+  //   Wide:   x=6-269   (w=264), y=71-360 (4 faces × 66px)
+  //   Face order L→R: back | outer | front | inner(cap col)
+  l_arm_back:    { x:  6, y: 71, w: 66, h:290 },
+  l_arm_outer:   { x: 72, y: 71, w: 66, h:290 },
+  l_arm_front:   { x:138, y: 71, w: 66, h:290 },
+  l_arm_inner:   { x:204, y: 71, w: 66, h:290 },
+  l_arm_top:     { x:204, y:  7, w: 66, h: 64 },
+  l_arm_bottom:  { x:204, y:361, w: 66, h: 64 },
+
+  // RIGHT ARM — Region 3: x=754-1017, y=7-424 (mirror of left)
+  //   Narrow: x=754-819, caps
+  //   Wide:   x=754-1017, 4 faces × 66px
+  //   Face order L→R: inner(cap col) | front | outer | back
+  r_arm_inner:   { x:754, y: 71, w: 66, h:290 },
+  r_arm_front:   { x:820, y: 71, w: 66, h:290 },
+  r_arm_outer:   { x:886, y: 71, w: 66, h:290 },
+  r_arm_back:    { x:952, y: 71, w: 66, h:290 },
+  r_arm_top:     { x:754, y:  7, w: 66, h: 64 },
+  r_arm_bottom:  { x:754, y:361, w: 66, h: 64 },
+
+  // WAIST — Region 4: x=439-584 (w=146), y=519-808 (h=290)
+  waist:         { x:439, y:519, w:146, h:290 },
+
+  // LEFT LEG — Region 5: x=14-269, y=597-1016
+  //   Narrow: x=206-269 (w=64), y=597-660 and y=953-1016
+  //   Wide:   x=14-269 (w=256), y=661-952 (4 faces × 64px)
+  l_leg_back:    { x: 14, y:661, w: 64, h:292 },
+  l_leg_outer:   { x: 78, y:661, w: 64, h:292 },
+  l_leg_front:   { x:142, y:661, w: 64, h:292 },
+  l_leg_inner:   { x:206, y:661, w: 64, h:292 },
+  l_leg_top:     { x:206, y:597, w: 64, h: 64 },
+  l_leg_bottom:  { x:206, y:953, w: 64, h: 64 },
+
+  // RIGHT LEG — Region 6: x=754-1009, y=597-1016
+  r_leg_inner:   { x:754, y:661, w: 64, h:292 },
+  r_leg_front:   { x:818, y:661, w: 64, h:292 },
+  r_leg_outer:   { x:882, y:661, w: 64, h:292 },
+  r_leg_back:    { x:946, y:661, w: 64, h:292 },
+  r_leg_top:     { x:754, y:597, w: 64, h: 64 },
+  r_leg_bottom:  { x:754, y:953, w: 64, h: 64 },
+};
+
+// ════════════════════════════════════════════════════════════════════════
+//  MAPPING: which Roblox region → which Polytoria region
+// ════════════════════════════════════════════════════════════════════════
+
+const SHIRT_MAP = [
+  // Torso
+  { from: 'torso_front',   src: SHIRT_REGIONS, to: 'torso_front'  },
+  { from: 'torso_back',    src: SHIRT_REGIONS, to: 'torso_back'   },
+  { from: 'torso_top',     src: SHIRT_REGIONS, to: 'torso_top'    },
+  { from: 'torso_bottom',  src: SHIRT_REGIONS, to: 'torso_bottom' },
+  { from: 'torso_left',    src: SHIRT_REGIONS, to: 'torso_right'  }, // L label = avatar's left → poly right side
+  { from: 'torso_right',   src: SHIRT_REGIONS, to: 'torso_left'   }, // R label = avatar's right → poly left side
+  // Right arm
+  { from: 'r_arm_front',   src: SHIRT_REGIONS, to: 'r_arm_front'  },
+  { from: 'r_arm_back',    src: SHIRT_REGIONS, to: 'r_arm_back'   },
+  { from: 'r_arm_top',     src: SHIRT_REGIONS, to: 'r_arm_top'    },
+  { from: 'r_arm_bottom',  src: SHIRT_REGIONS, to: 'r_arm_bottom' },
+  { from: 'r_arm_right',   src: SHIRT_REGIONS, to: 'r_arm_outer'  },
+  { from: 'r_arm_left',    src: SHIRT_REGIONS, to: 'r_arm_inner'  },
+  // Left arm
+  { from: 'l_arm_front',   src: SHIRT_REGIONS, to: 'l_arm_front'  },
+  { from: 'l_arm_back',    src: SHIRT_REGIONS, to: 'l_arm_back'   },
+  { from: 'l_arm_top',     src: SHIRT_REGIONS, to: 'l_arm_top'    },
+  { from: 'l_arm_bottom',  src: SHIRT_REGIONS, to: 'l_arm_bottom' },
+  { from: 'l_arm_right',   src: SHIRT_REGIONS, to: 'l_arm_outer'  },
+  { from: 'l_arm_left',    src: SHIRT_REGIONS, to: 'l_arm_inner'  },
+];
+
+const PANTS_MAP = [
+  // Waist → polytoria center waist
+  { from: 'waist_front',   src: PANTS_REGIONS, to: 'waist'       },
+  // Right leg
+  { from: 'r_leg_front',   src: PANTS_REGIONS, to: 'r_leg_front'  },
+  { from: 'r_leg_back',    src: PANTS_REGIONS, to: 'r_leg_back'   },
+  { from: 'r_leg_top',     src: PANTS_REGIONS, to: 'r_leg_top'    },
+  { from: 'r_leg_bottom',  src: PANTS_REGIONS, to: 'r_leg_bottom' },
+  { from: 'r_leg_right',   src: PANTS_REGIONS, to: 'r_leg_outer'  },
+  { from: 'r_leg_left',    src: PANTS_REGIONS, to: 'r_leg_inner'  },
+  // Left leg
+  { from: 'l_leg_front',   src: PANTS_REGIONS, to: 'l_leg_front'  },
+  { from: 'l_leg_back',    src: PANTS_REGIONS, to: 'l_leg_back'   },
+  { from: 'l_leg_top',     src: PANTS_REGIONS, to: 'l_leg_top'    },
+  { from: 'l_leg_bottom',  src: PANTS_REGIONS, to: 'l_leg_bottom' },
+  { from: 'l_leg_right',   src: PANTS_REGIONS, to: 'l_leg_outer'  },
+  { from: 'l_leg_left',    src: PANTS_REGIONS, to: 'l_leg_inner'  },
+];
+
+// ════════════════════════════════════════════════════════════════════════
+//  POLYTORIA TEMPLATE OVERLAY  (embedded base64)
+// ════════════════════════════════════════════════════════════════════════
+const POLY_TEMPLATE_B64 = "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CRIAKaWc8xef/YABAM/MFxPX1x/z50cAwNfcAgQAAKEJAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAAAEAgAgAAAAIRAAAAEIgAAACAQAQAAAAEIgAAACAQAQAAAIEIAAAACEQAAABAIAIAAAACEQAAABCIAAAAgEAEAAAABCIAAAAgEAEAAACBCAAAAAhEAAAAQCACAAAAAhEAAAAQiAAAAIBABAAAAAQiAAAAIBABAAAAgQgAAAAIRAAA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";
+
+// ════════════════════════════════════════════════════════════════════════
+//  UI STATE
+// ════════════════════════════════════════════════════════════════════════
+let activeType  = 'shirt';   // 'shirt' | 'pants'
+let inputImage  = null;      // HTMLImageElement
+let outputCanvas = null;
+
+// ── Load Polytoria template for overlay ──────────────────────────────────
+let polyTemplateImg = null;
+{
+  const img = new Image();
+  img.onload = () => { polyTemplateImg = img; };
+  img.src = 'data:image/png;base64,' + POLY_TEMPLATE_B64;
+}
+
+// ── DOM refs ────────────────────────────────────────────────────────────
+const dropZone    = document.getElementById('dropZone');
+const fileInput   = document.getElementById('fileInput');
+const inputWrap   = document.getElementById('inputWrap');
+const outputWrap  = document.getElementById('outputWrap');
+const convertBtn  = document.getElementById('convertBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const statusEl    = document.getElementById('status');
+
+// ── Tab switching ────────────────────────────────────────────────────────
+document.querySelectorAll('.type-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeType = tab.dataset.type;
+  });
+});
+
+// ── Drag and drop ────────────────────────────────────────────────────────
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+// ── File handler ─────────────────────────────────────────────────────────
+function handleFile(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    inputImage = img;
+    // Show preview
+    const cvs = document.createElement('canvas');
+    cvs.width  = img.width;
+    cvs.height = img.height;
+    cvs.getContext('2d').drawImage(img, 0, 0);
+    inputWrap.innerHTML = '';
+    inputWrap.appendChild(cvs);
+    convertBtn.disabled = false;
+    setStatus('');
+    downloadBtn.classList.add('hidden');
+    outputWrap.innerHTML = '<div class="canvas-placeholder">Click Convert to process</div>';
+  };
+  img.src = url;
+}
+
+// ── Convert ───────────────────────────────────────────────────────────────
+convertBtn.addEventListener('click', () => {
+  if (!inputImage) return;
+  convertBtn.disabled = true;
+  setStatus('Converting…');
+
+  // Use rAF to let the spinner/status render first
+  requestAnimationFrame(() => {
+    try {
+      outputCanvas = convertTexture(inputImage, activeType === 'pants' ? PANTS_MAP : SHIRT_MAP);
+      // Build preview with template overlay
+      const previewCvs = polyTemplateImg
+        ? buildPreviewCanvas(outputCanvas, polyTemplateImg)
+        : outputCanvas;
+      outputWrap.innerHTML = '';
+      outputWrap.appendChild(previewCvs);
+      const url = outputCanvas.toDataURL('image/png');
+      downloadBtn.href = url;
+      downloadBtn.classList.remove('hidden');
+      setStatus('✓ Conversion complete!', 'ok');
+    } catch(e) {
+      setStatus('Error: ' + e.message, 'err');
+    }
+    convertBtn.disabled = false;
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════
+//  CORE CONVERSION
+// ════════════════════════════════════════════════════════════════════════
+function convertTexture(srcImg, mappings) {
+  const out = document.createElement('canvas');
+  out.width  = PW;
+  out.height = PH;
+  const ctx = out.getContext('2d');
+
+  // --- transparent background (Polytoria uses transparent for unused areas)
+  ctx.clearRect(0, 0, PW, PH);
+
+  // --- draw each mapping
+  for (const m of mappings) {
+    const src = m.src[m.from];   // normalised source rect
+    const dst = POLY_REGIONS[m.to]; // absolute dest rect in Polytoria
+
+    if (!src || !dst) continue;
+
+    // Convert normalized src to absolute pixels
+    const sx = Math.round(src.x * srcImg.width);
+    const sy = Math.round(src.y * srcImg.height);
+    const sw = Math.round(src.w * srcImg.width);
+    const sh = Math.round(src.h * srcImg.height);
+
+    if (sw <= 0 || sh <= 0 || dst.w <= 0 || dst.h <= 0) continue;
+
+    // Use drawImage with scaling
+    ctx.drawImage(srcImg, sx, sy, sw, sh, dst.x, dst.y, dst.w, dst.h);
+  }
+
+  return out;
+}
+
+// ─ Preview canvas: converted texture + Polytoria template overlay ────────
+function buildPreviewCanvas(converted, templateImg) {
+  const cvs = document.createElement('canvas');
+  cvs.width = PW; cvs.height = PH;
+  const ctx = cvs.getContext('2d');
+
+  // Draw converted result
+  ctx.drawImage(converted, 0, 0);
+
+  // Overlay Polytoria template at low opacity as a guide
+  ctx.globalAlpha = 0.18;
+  ctx.globalCompositeOperation = 'luminosity';
+  ctx.drawImage(templateImg, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  return cvs;
+}
+
+function setStatus(msg, cls = '') {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (cls ? ' ' + cls : '');
+}
+</script>
+</body>
+</html>
